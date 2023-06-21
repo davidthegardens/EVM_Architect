@@ -2,4 +2,4 @@
 API_Keys/
 venv/
 __pycache__/
-tester.py
+test.py
