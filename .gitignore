@@ -1,0 +1,5 @@
+#Gitignore added by easykey
+API_Keys/
+venv/
+__pycache__/
+tester.py
