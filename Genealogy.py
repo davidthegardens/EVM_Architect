@@ -26,7 +26,8 @@ def Check_Opcode(address,creationdict):
             if op['opcode'] in ["CREATE","CREATE2"]:
                 if i['contractAddress']!="":
                     if i['from'] in creationdict.keys():
-                        creationdict[i['from']].append(i['contractAddress'])
+                        if i['contractAddress'] not in creationdict[i['from']]:
+                            creationdict[i['from']].append(i['contractAddress'])
                     else: creationdict[i['from']]=[i['contractAddress']]
     return creationdict
 
@@ -41,7 +42,8 @@ def Check_Normal_By_Internal(address,creationdict):
         for txn in content.json()['result']:
             if txn['type'] in ['create','create2']:
                 if txn['from'] in creationdict.keys():
-                    creationdict[txn['from']].append(txn['contractAddress'])
+                    if txn['contractAddress'] not in creationdict[txn['from']]:
+                        creationdict[txn['from']].append(txn['contractAddress'])
                 else: creationdict[txn['from']]=[txn['contractAddress']]
     return creationdict
 
@@ -53,17 +55,42 @@ def Check_Contract_Internal(address,creationdict):
     for txn in content.json()['result']:
         if txn['type'] in ['create','create2']:
             if txn['from'] in creationdict.keys():
-                creationdict[txn['from']].append(txn['contractAddress'])
+                if txn['contractAddress'] not in creationdict[txn['from']]:
+                    creationdict[txn['from']].append(txn['contractAddress'])
             else: creationdict[txn['from']]=[txn['contractAddress']]
             creationdict[txn['contractAddress']]=txn['from']
     return creationdict
 
-def MultiCheck(address):
-    creationdict=Check_Contract_Internal(address,{})
+def MultiCheck(address,creationdict):
+    creationdict=Check_Contract_Internal(address,creationdict)
     creationdict=Check_Normal_By_Internal(address,creationdict)
     creationdict=Check_Opcode(address,creationdict)
     return creationdict
 
-print(MultiCheck("0xD1C24f50d05946B3FABeFBAe3cd0A7e9938C63F2"))
+def GetHighest(creationdict):
+    masterlist=[]
+    for lists in creationdict.values():
+        masterlist.extend(lists)
+
+    keylist=list(creationdict.keys())
+
+    for val in masterlist:
+        if val in keylist:
+            keylist.remove(val)
+    return keylist[0]
+
+latestaddress='0xc0a47dfe034b400b47bdad5fecda2621de6c4d95'
+creationdict=MultiCheck(latestaddress,{})
+print(creationdict)
+
+for i in range(10):
+    highest=GetHighest(creationdict)
+    if highest==latestaddress:
+        break
+    else:
+        latestaddress=highest
+    creationdict=MultiCheck(highest,creationdict)
+
+    #print(creationdict)
 
 
