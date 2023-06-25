@@ -6,18 +6,58 @@ import mythril
 
 ###python 3.9.0 required for mythril
 
-def GetAllHashesFromAddress(address):
-    payload=payload="""
-        https://api.etherscan.io/api?module=account&action=txlist&address={address}&sort=asc&apikey={apikey}
-        """
+def GetParent(address):
+    payload="https://api.etherscan.io/api?module=contract&action=getcontractcreation&contractaddresses={address}&apikey={apikey}"
     content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address))
+    result=content.json()['result']
+    if result==None or result[0]['contractCreator']==address:
+        return None
+    else:
+        payload="""
+            https://api.etherscan.io/api?module=account&action=txlistinternal&address={address}&apikey={apikey}&sort=asc&offset={offset}&txhash={hash}&page=1
+            """
+        content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address,offset=1,hash=result[0]['txHash']))
+        content=content.json()['result']
+        if len(content)<1:
+            return result[0]['contractCreator']
+        if content[0]['traceId'].count("_")==0:
+            return result[0]['contractCreator']
+        else:
+            return content[0]['from']
+
+
+print(GetParent('0xb7B4B6D077fc59E6387C3c4ff9a9a6BE031d1dfE'))
+print(GetParent("0xc0a47dfe034b400b47bdad5fecda2621de6c4d95"))
+
+def FactoryCheck():
+
+    return
+
+def CheckNormal(address,txn,creationdict):
+    address=address.lower()
+    if (txn["value"]=="0" and txn["to"]=="") and txn["from"]==address:
+        if address in creationdict.keys():
+            if txn['contractAddress'] not in creationdict[txn['from']]:
+                creationdict[txn['from']].append(txn['contractAddress'])
+        else: creationdict[txn['from']]=[txn['contractAddress']]
+    return creationdict
+
+def GetAllHashesFromAddress(address,transactionlimit,creationdict):
+    payload=payload="""
+        https://api.etherscan.io/api?module=account&action=txlist&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1
+        """
+    content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address,offset=transactionlimit))
     required=[]
     for txn in content.json()['result']:
-        required.append(txn['hash'])
-    return required
+        if txn["isError"]=="0":
+            creationdict=CheckNormal(address,txn,creationdict)
+            required.append(txn['hash'])
+    return required,creationdict
 
-def Check_Opcode(address,creationdict):
-    content=requests.get("https://api.etherscan.io/api?module=account&action=txlist&address={address}&apikey={apikey}".format(address=address,apikey=km().Easy_Key("etherscan_api_key"))).json()
+#print(GetAllHashesFromAddress("0x51F22ac850D29C879367A77D241734AcB276B815",100,{})[1])
+
+def Check_Opcode(address,creationdict,transactionlimit):
+    content=requests.get("https://api.etherscan.io/api?module=account&action=txlist&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1".format(address=address,offset=transactionlimit,apikey=km().Easy_Key("etherscan_api_key"))).json()
     content=content['result']
     for i in content:
         txn=i['input']
@@ -31,14 +71,14 @@ def Check_Opcode(address,creationdict):
                     else: creationdict[i['from']]=[i['contractAddress']]
     return creationdict
 
-def Check_Normal_By_Internal(address,creationdict):
-    hashes=GetAllHashesFromAddress(address)
+def Check_Normal_By_Internal(address,creationdict,transactionlimit):
+    hashes,creationdict=GetAllHashesFromAddress(address,transactionlimit,creationdict)
     #creator=
     payload="""
-        https://api.etherscan.io/api?module=account&action=txlistinternal&txhash={hash}&apikey={apikey}&sort=asc
+        https://api.etherscan.io/api?module=account&action=txlistinternal&txhash={hash}&apikey={apikey}&sort=asc&offset={offset}&page=1
         """
     for hash in hashes:
-        content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),hash=hash))
+        content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),hash=hash,offset=transactionlimit))
         for txn in content.json()['result']:
             if txn['type'] in ['create','create2']:
                 if txn['from'] in creationdict.keys():
@@ -47,24 +87,24 @@ def Check_Normal_By_Internal(address,creationdict):
                 else: creationdict[txn['from']]=[txn['contractAddress']]
     return creationdict
 
-def Check_Contract_Internal(address,creationdict):
+def Check_Contract_Internal(address,creationdict,transactionlimit):
     payload="""
-        https://api.etherscan.io/api?module=account&action=txlistinternal&address={address}&sort=asc&apikey={apikey}
+        https://api.etherscan.io/api?module=account&action=txlistinternal&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1
         """
-    content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address))
+    content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address,offset=transactionlimit))
     for txn in content.json()['result']:
         if txn['type'] in ['create','create2']:
             if txn['from'] in creationdict.keys():
                 if txn['contractAddress'] not in creationdict[txn['from']]:
                     creationdict[txn['from']].append(txn['contractAddress'])
             else: creationdict[txn['from']]=[txn['contractAddress']]
-            creationdict[txn['contractAddress']]=txn['from']
+            #creationdict[txn['contractAddress']]=txn['from']
     return creationdict
 
-def MultiCheck(address,creationdict):
-    creationdict=Check_Contract_Internal(address,creationdict)
-    creationdict=Check_Normal_By_Internal(address,creationdict)
-    creationdict=Check_Opcode(address,creationdict)
+def MultiCheck(address,creationdict,transactionlimit):
+    creationdict=Check_Contract_Internal(address,creationdict,transactionlimit)
+    creationdict=Check_Normal_By_Internal(address,creationdict,transactionlimit)
+    creationdict=Check_Opcode(address,creationdict,transactionlimit)
     return creationdict
 
 def GetHighest(creationdict):
@@ -77,20 +117,39 @@ def GetHighest(creationdict):
     for val in masterlist:
         if val in keylist:
             keylist.remove(val)
+    print(keylist)
     return keylist[0]
 
-latestaddress='0xc0a47dfe034b400b47bdad5fecda2621de6c4d95'
-creationdict=MultiCheck(latestaddress,{})
-print(creationdict)
+def Climb(address):
+    while True:
+        lastaddress=address
+        address=GetParent(lastaddress)
+        if address==None or address==lastaddress:
+            return lastaddress
 
-for i in range(10):
-    highest=GetHighest(creationdict)
-    if highest==latestaddress:
-        break
-    else:
-        latestaddress=highest
-    creationdict=MultiCheck(highest,creationdict)
+def flatdict(dicto):
+    flatlist=list(dicto.keys())
+    values=list(dicto.values())
+    for value in values:
+        flatlist.extend(value)
+    return list(dict.fromkeys(flatlist))
 
-    #print(creationdict)
+def TrickleDown(address,creationdict,transactionlimit):
+    creationdict=MultiCheck(address,creationdict,transactionlimit)
+    flat=1
+    newflat=2
+    while flat!=newflat:
+        print(1)
+        flat=flatdict(creationdict)
+        for addr in flat:
+            if newflat!=2:
+                if addr in newflat:
+                    continue
+                else: creationdict=MultiCheck(addr,creationdict,transactionlimit)
+            else: creationdict=MultiCheck(addr,creationdict,transactionlimit)
+        newflat=flatdict(creationdict)
+    return creationdict
 
+#print(TrickleDown("0x51F22ac850D29C879367A77D241734AcB276B815",{},80))
 
+print(Climb('0xce680723d7fd67ab193dfec828b7fbc441f29b01'))
