@@ -25,10 +25,6 @@ def GetParent(address):
         else:
             return content[0]['from']
 
-
-print(GetParent('0xb7B4B6D077fc59E6387C3c4ff9a9a6BE031d1dfE'))
-print(GetParent("0xc0a47dfe034b400b47bdad5fecda2621de6c4d95"))
-
 def FactoryCheck():
 
     return
@@ -53,8 +49,6 @@ def GetAllHashesFromAddress(address,transactionlimit,creationdict):
             creationdict=CheckNormal(address,txn,creationdict)
             required.append(txn['hash'])
     return required,creationdict
-
-#print(GetAllHashesFromAddress("0x51F22ac850D29C879367A77D241734AcB276B815",100,{})[1])
 
 def Check_Opcode(address,creationdict,transactionlimit):
     content=requests.get("https://api.etherscan.io/api?module=account&action=txlist&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1".format(address=address,offset=transactionlimit,apikey=km().Easy_Key("etherscan_api_key"))).json()
@@ -98,7 +92,6 @@ def Check_Contract_Internal(address,creationdict,transactionlimit):
                 if txn['contractAddress'] not in creationdict[txn['from']]:
                     creationdict[txn['from']].append(txn['contractAddress'])
             else: creationdict[txn['from']]=[txn['contractAddress']]
-            #creationdict[txn['contractAddress']]=txn['from']
     return creationdict
 
 def MultiCheck(address,creationdict,transactionlimit):
@@ -139,7 +132,6 @@ def TrickleDown(address,creationdict,transactionlimit):
     flat=1
     newflat=2
     while flat!=newflat:
-        print(1)
         flat=flatdict(creationdict)
         for addr in flat:
             if newflat!=2:
@@ -150,6 +142,6 @@ def TrickleDown(address,creationdict,transactionlimit):
         newflat=flatdict(creationdict)
     return creationdict
 
-#print(TrickleDown("0x51F22ac850D29C879367A77D241734AcB276B815",{},80))
+print(TrickleDown("0xbd723fc4f1d737dcfc48a07fe7336766d34cad5f",{},200))
 
-print(Climb('0xce680723d7fd67ab193dfec828b7fbc441f29b01'))
+#print(Climb('0xce680723d7fd67ab193dfec828b7fbc441f29b01'))
