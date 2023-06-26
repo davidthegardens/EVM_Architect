@@ -3,3 +3,4 @@ API_Keys/
 venv/
 __pycache__/
 test.py
+*.csv
