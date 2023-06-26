@@ -3,6 +3,8 @@ import requests
 import json
 import dis
 import mythril
+import hashlib
+import pandas as pd
 
 ###python 3.9.0 required for mythril
 
@@ -24,10 +26,6 @@ def GetParent(address):
             return result[0]['contractCreator']
         else:
             return content[0]['from']
-
-def FactoryCheck():
-
-    return
 
 def CheckNormal(address,txn,creationdict):
     address=address.lower()
@@ -142,6 +140,29 @@ def TrickleDown(address,creationdict,transactionlimit):
         newflat=flatdict(creationdict)
     return creationdict
 
-print(TrickleDown("0xbd723fc4f1d737dcfc48a07fe7336766d34cad5f",{},200))
+def UniqueContracts(creationdict):
+    flattenned=flatdict(creationdict)
+    returnable={}
+    for addr in flattenned:
+        payload="https://api.etherscan.io/api?module=contract&action=getsourcecode&address={address}&apikey={apikey}"
+        content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=addr))
+        content=content.json()
+        if content['status']=='1':
+            source=content['result'][0]['SourceCode']
+            if source!="":
+                hashed=hashlib.sha1(bytes(source,encoding='UTF-8')).hexdigest()
+                if hashed not in returnable.keys():
+                    returnable[hashed]=addr
+            else:
+                returnable[addr]=addr
+    return list(returnable.values())
 
+def MasterSleuth(address,savefile):
+    address=Climb(address)
+    creationdict=TrickleDown(address,{},80)
+    addresses=UniqueContracts(creationdict)
+    df=pd.DataFrame(data={"Unique Addresses":addresses})
+    df.to_csv(savefile)
+
+MasterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01')
 #print(Climb('0xce680723d7fd67ab193dfec828b7fbc441f29b01'))
