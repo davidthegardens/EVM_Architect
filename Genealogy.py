@@ -157,12 +157,11 @@ def UniqueContracts(creationdict):
                 returnable[addr]=addr
     return list(returnable.values())
 
-def MasterSleuth(address,savefile):
+def MasterSleuth(address,savefile,transactionlimit):
     address=Climb(address)
-    creationdict=TrickleDown(address,{},80)
+    creationdict=TrickleDown(address,{},transactionlimit)
     addresses=UniqueContracts(creationdict)
     df=pd.DataFrame(data={"Unique Addresses":addresses})
     df.to_csv(savefile)
 
-MasterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01')
-#print(Climb('0xce680723d7fd67ab193dfec828b7fbc441f29b01'))
+MasterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',80)
