@@ -1,2 +1,2 @@
 # Gene
-Maps the entire smart contract architecture from any starting address in the architecture
+Maps the entire smart contract architecture from any starting address in the architecture. As it stands, there is a lot of redundancy which is slowing down the program. However, you can still get results in a small time frame by toggling the transaction limit. Simply call the MasterSleuth() function, and it will climb the architecture tree, find all contracts created by the matriarch and its' grandchildren, then sort out any contracts with matching source code.
