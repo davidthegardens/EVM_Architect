@@ -7,6 +7,7 @@ import hashlib
 import pandas as pd
 
 ###python 3.9.0 required for mythril
+
 class Gene:
 
     def __init__(self):
@@ -161,12 +162,14 @@ class Gene:
                     returnable[addr]=addr
         return list(returnable.values())
 
-    def MasterSleuth(self,address,savefile,transactionlimit):
+    def MasterSleuth(self,address,savefile,transactionlimit,uniquesource):
         address=Gene().Climb(address)
         creationdict=Gene().TrickleDown(address,{},transactionlimit)
-        addresses=Gene().UniqueContracts(creationdict)
+        if uniquesource==True:
+            addresses=Gene().UniqueContracts(creationdict)
+        else: addresses=Gene().flatdict(creationdict)
         df=pd.DataFrame(data={"Unique Addresses":addresses})
         df.to_csv(savefile)
 
 #Example Usage
-#Gene().MasterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',10)
+#Gene().MasterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',10,True)
