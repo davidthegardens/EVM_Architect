@@ -48,14 +48,22 @@ class Gene:
                 timeIt(start_time,"getParent")
                 return content[0]['from']
 
-    def checkNormal(self,address,txn,creationdict):
+    def checkNormal(self,address,creationdict,transactionlimit,requestbypass):
         start_time=time.monotonic()
+        if requestbypass==None:
+            payload=payload="""
+                https://api.etherscan.io/api?module=account&action=txlist&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1
+                """
+            content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address,offset=transactionlimit))
+            content=content.json()['result']
+        else: content=requestbypass
         address=address.lower()
-        if (txn["value"]=="0" and txn["to"]=="") and txn["from"]==address:
-            if address in creationdict.keys():
-                if txn['contractAddress'] not in creationdict[txn['from']]:
-                    creationdict[txn['from']].append(txn['contractAddress'])
-            else: creationdict[txn['from']]=[txn['contractAddress']]
+        for txn in content:
+            if (txn["value"]=="0" and txn["to"]=="") and txn["from"]==address:
+                if address in creationdict.keys():
+                    if txn['contractAddress'] not in creationdict[txn['from']]:
+                        creationdict[txn['from']].append(txn['contractAddress'])
+                else: creationdict[txn['from']]=[txn['contractAddress']]
         timeIt(start_time,"checkNormal")
         return creationdict
 
@@ -73,10 +81,12 @@ class Gene:
         timeIt(start_time,"getHashes")
         return required,creationdict
 
-    def checkOpcode(self,address,creationdict,transactionlimit):
+    def checkOpcode(self,address,creationdict,transactionlimit,requestbypass):
         start_time=time.monotonic()
-        content=requests.get("https://api.etherscan.io/api?module=account&action=txlist&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1".format(address=address,offset=transactionlimit,apikey=km().Easy_Key("etherscan_api_key"))).json()
-        content=content['result']
+        if requestbypass==None:
+            content=requests.get("https://api.etherscan.io/api?module=account&action=txlist&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1".format(address=address,offset=transactionlimit,apikey=km().Easy_Key("etherscan_api_key"))).json()
+            content=content['result']
+        else: content=requestbypass
         for i in content:
             txn=i['input']
             opl = mythril.disassembler.asm.disassemble(txn)
@@ -125,9 +135,15 @@ class Gene:
 
     def multiCheck(self,address,creationdict,transactionlimit):
         start_time=time.monotonic()
+        payload=payload="""
+            https://api.etherscan.io/api?module=account&action=txlist&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1
+            """
+        content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address,offset=transactionlimit))
+        content=content.json()['result']
+        creationdict=Gene().checkNormal(address,creationdict,transactionlimit,content)
         creationdict=Gene().contractInternal(address,creationdict,transactionlimit)
-        creationdict=Gene().normInternal(address,creationdict,transactionlimit)
-        creationdict=Gene().checkOpcode(address,creationdict,transactionlimit)
+        #creationdict=Gene().normInternal(address,creationdict,transactionlimit)
+        creationdict=Gene().checkOpcode(address,creationdict,transactionlimit,content)
         timeIt(start_time,"multiCheck")
         return creationdict
 
@@ -210,7 +226,9 @@ class Gene:
         df=pd.DataFrame(data={"Unique Addresses":addresses})
         df.to_csv(savefile)
         timeIt(start_time,"masterSleuth")
-        print(timer)
+        
+
 
 #Example Usage
-Gene().masterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',10,True)
+#Gene().masterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',100,True)
+#print(timer)
