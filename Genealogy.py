@@ -25,6 +25,13 @@ class Gene:
     def __init__(self):
         pass
 
+    def hashOpcode(self,bytecode):
+        oplist=[]
+        opl = mythril.disassembler.asm.disassemble(bytecode)
+        for op in opl:
+            oplist.append(op['opcode'])
+        return hashlib.sha1(bytes("".join(oplist),encoding='UTF-8')).hexdigest()
+
     def getParent(self,address):
         start_time=time.monotonic()
         payload="https://api.etherscan.io/api?module=contract&action=getcontractcreation&contractaddresses={address}&apikey={apikey}"
@@ -202,17 +209,26 @@ class Gene:
         flattenned=Gene().flatDict(creationdict)
         returnable={}
         for addr in flattenned:
-            payload="https://api.etherscan.io/api?module=contract&action=getsourcecode&address={address}&apikey={apikey}"
-            content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=addr))
-            content=content.json()
-            if content['status']=='1':
-                source=content['result'][0]['SourceCode']
-                if source!="":
-                    hashed=hashlib.sha1(bytes(source,encoding='UTF-8')).hexdigest()
-                    if hashed not in returnable.keys():
-                        returnable[hashed]=addr
-                else:
-                    returnable[addr]=addr
+            url="https://eth-mainnet.g.alchemy.com/v2/{apikey}".format(apikey=km().Easy_Key("alchemy-key"))
+            payload={
+                "id": 1,
+                "jsonrpc": "2.0",
+                "method": "eth_getCode"
+            }
+            payload["params"]=[addr, "latest"]
+            headers={
+                "accept": "application/json",
+                "content-type": "application/json"
+            }
+            source = requests.post(url, json=payload, headers=headers).json()['result']
+            # source=response['result'].join("")
+            # source=mythril.disassembler.asm.disassemble(source)
+            if source!="":
+                hashed=Gene().hashOpcode(source)
+                if hashed not in returnable.keys():
+                    returnable[hashed]=addr
+            else:
+                returnable[addr]=addr
         timeIt(start_time,"uniqueContracts")
         return list(returnable.values())
 
@@ -227,8 +243,6 @@ class Gene:
         df.to_csv(savefile)
         timeIt(start_time,"masterSleuth")
         
-
-
 #Example Usage
-#Gene().masterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',100,True)
-#print(timer)
+Gene().masterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',100,True)
+print(timer)
