@@ -133,19 +133,43 @@ class Gene:
         timeIt(start_time,"contractInternal")
         return creationdict
 
-    def multiCheck(self,address,creationdict,transactionlimit):
+    def is_new_contract(self,address,source_hashes):
         start_time=time.monotonic()
-        payload=payload="""
-            https://api.etherscan.io/api?module=account&action=txlist&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1
-            """
-        content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address,offset=transactionlimit))
-        content=content.json()['result']
-        creationdict=Gene().checkNormal(address,creationdict,transactionlimit,content)
-        creationdict=Gene().contractInternal(address,creationdict,transactionlimit)
-        #creationdict=Gene().normInternal(address,creationdict,transactionlimit)
-        creationdict=Gene().checkOpcode(address,creationdict,transactionlimit,content)
+        if address in source_hashes.keys():
+            timeIt(start_time,'is_new_contract')
+            return False,source_hashes
+        payload="https://api.etherscan.io/api?module=contract&action=getsourcecode&address={address}&apikey={apikey}"
+        content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address))
+        content=content.json()
+        if content['status']=='0':
+            timeIt(start_time,'is_new_contract')
+            return True,source_hashes
+        source=content['result'][0]['SourceCode']
+        if source=="":
+            timeIt(start_time,'is_new_contract')
+            return True,source_hashes
+        hashed=hashlib.sha1(bytes(source,encoding='UTF-8')).hexdigest()
+        if hashed in source_hashes.values():
+            timeIt(start_time,'is_new_contract')
+            return False,source_hashes
+        source_hashes[address]=hashed
+        timeIt(start_time,'is_new_contract')
+        return True,source_hashes
+
+    def multiCheck(self,address,creationdict,transactionlimit,uniquesource,source_hashes):
+        start_time=time.monotonic()
+        unique_ct,source_hashes=Gene().is_new_contract(address,source_hashes)
+        if unique_ct or uniquesource==False:
+            payload=payload="""
+                https://api.etherscan.io/api?module=account&action=txlist&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1
+                """
+            content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address,offset=transactionlimit)).json()['result']
+            creationdict=Gene().checkNormal(address,creationdict,transactionlimit,content)
+            creationdict=Gene().contractInternal(address,creationdict,transactionlimit)
+            #creationdict=Gene().normInternal(address,creationdict,transactionlimit)
+            creationdict=Gene().checkOpcode(address,creationdict,transactionlimit,content)
         timeIt(start_time,"multiCheck")
-        return creationdict
+        return creationdict,source_hashes
 
     def getHighest(self,creationdict):
         start_time=time.monotonic()
@@ -180,9 +204,9 @@ class Gene:
         timeIt(start_time,"flatDict")
         return list(dict.fromkeys(flatlist))
 
-    def trickleDown(self,address,creationdict,transactionlimit):
+    def trickleDown(self,address,creationdict,transactionlimit,uniquesource):
         start_time=time.monotonic()
-        creationdict=Gene().multiCheck(address,creationdict,transactionlimit)
+        creationdict,source_hashes=Gene().multiCheck(address,creationdict,transactionlimit,uniquesource,{})
         flat=1
         newflat=2
         while flat!=newflat:
@@ -191,8 +215,8 @@ class Gene:
                 if newflat!=2:
                     if addr in newflat:
                         continue
-                    else: creationdict=Gene().multiCheck(addr,creationdict,transactionlimit)
-                else: creationdict=Gene().multiCheck(addr,creationdict,transactionlimit)
+                    else: creationdict,source_hashes=Gene().multiCheck(addr,creationdict,transactionlimit,uniquesource,source_hashes)
+                else: creationdict,source_hashes=Gene().multiCheck(addr,creationdict,transactionlimit,uniquesource,source_hashes)
             newflat=Gene().flatDict(creationdict)
         timeIt(start_time,"trickleDown")
         return creationdict
@@ -219,10 +243,10 @@ class Gene:
     def masterSleuth(self,address,savefile,transactionlimit,uniquesource):
         start_time=time.monotonic()
         address=Gene().climb(address)
-        creationdict=Gene().trickleDown(address,{},transactionlimit)
-        if uniquesource==True:
-            addresses=Gene().uniqueContracts(creationdict)
-        else: addresses=Gene().flatDict(creationdict)
+        creationdict=Gene().trickleDown(address,{},transactionlimit,uniquesource)
+        # if uniquesource==True:
+        #     addresses=Gene().uniqueContracts(creationdict)
+        addresses=Gene().flatDict(creationdict)
         df=pd.DataFrame(data={"Unique Addresses":addresses})
         df.to_csv(savefile)
         timeIt(start_time,"masterSleuth")
@@ -230,5 +254,5 @@ class Gene:
 
 
 #Example Usage
-#Gene().masterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',100,True)
-#print(timer)
+Gene().masterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',100,True)
+print(timer)
