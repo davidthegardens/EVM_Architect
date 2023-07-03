@@ -5,15 +5,28 @@ import dis
 import mythril
 import hashlib
 import pandas as pd
+import time
+from datetime import timedelta,datetime
 
 ###python 3.9.0 required for mythril
+global timer, timeIt
+timer={}
+
+def timeIt(start_time,name):
+    end_time = time.monotonic()
+    duration=timedelta(seconds=end_time - start_time).total_seconds()
+    if name in timer.keys():
+        timer[name]=timer[name]+duration
+    else: timer[name]=duration
+    
 
 class Gene:
 
     def __init__(self):
         pass
 
-    def GetParent(self,address):
+    def getParent(self,address):
+        start_time=time.monotonic()
         payload="https://api.etherscan.io/api?module=contract&action=getcontractcreation&contractaddresses={address}&apikey={apikey}"
         content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address))
         result=content.json()['result']
@@ -26,22 +39,28 @@ class Gene:
             content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address,offset=1,hash=result[0]['txHash']))
             content=content.json()['result']
             if len(content)<1:
+                timeIt(start_time,"getParent")
                 return result[0]['contractCreator']
             if content[0]['traceId'].count("_")==0:
+                timeIt(start_time,"getParent")
                 return result[0]['contractCreator']
             else:
+                timeIt(start_time,"getParent")
                 return content[0]['from']
 
-    def CheckNormal(self,address,txn,creationdict):
+    def checkNormal(self,address,txn,creationdict):
+        start_time=time.monotonic()
         address=address.lower()
         if (txn["value"]=="0" and txn["to"]=="") and txn["from"]==address:
             if address in creationdict.keys():
                 if txn['contractAddress'] not in creationdict[txn['from']]:
                     creationdict[txn['from']].append(txn['contractAddress'])
             else: creationdict[txn['from']]=[txn['contractAddress']]
+        timeIt(start_time,"checkNormal")
         return creationdict
 
-    def GetAllHashesFromAddress(self,address,transactionlimit,creationdict):
+    def getHashes(self,address,transactionlimit,creationdict):
+        start_time=time.monotonic()
         payload=payload="""
             https://api.etherscan.io/api?module=account&action=txlist&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1
             """
@@ -49,11 +68,13 @@ class Gene:
         required=[]
         for txn in content.json()['result']:
             if txn["isError"]=="0":
-                creationdict=Gene().CheckNormal(address,txn,creationdict)
+                creationdict=Gene().checkNormal(address,txn,creationdict)
                 required.append(txn['hash'])
+        timeIt(start_time,"getHashes")
         return required,creationdict
 
-    def Check_Opcode(self,address,creationdict,transactionlimit):
+    def checkOpcode(self,address,creationdict,transactionlimit):
+        start_time=time.monotonic()
         content=requests.get("https://api.etherscan.io/api?module=account&action=txlist&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1".format(address=address,offset=transactionlimit,apikey=km().Easy_Key("etherscan_api_key"))).json()
         content=content['result']
         for i in content:
@@ -66,10 +87,12 @@ class Gene:
                             if i['contractAddress'] not in creationdict[i['from']]:
                                 creationdict[i['from']].append(i['contractAddress'])
                         else: creationdict[i['from']]=[i['contractAddress']]
+        timeIt(start_time,"checkOpcode")
         return creationdict
 
-    def Check_Normal_By_Internal(self,address,creationdict,transactionlimit):
-        hashes,creationdict=Gene().GetAllHashesFromAddress(address,transactionlimit,creationdict)
+    def normInternal(self,address,creationdict,transactionlimit):
+        start_time=time.monotonic()
+        hashes,creationdict=Gene().getHashes(address,transactionlimit,creationdict)
         #creator=
         payload="""
             https://api.etherscan.io/api?module=account&action=txlistinternal&txhash={hash}&apikey={apikey}&sort=asc&offset={offset}&page=1
@@ -82,9 +105,11 @@ class Gene:
                         if txn['contractAddress'] not in creationdict[txn['from']]:
                             creationdict[txn['from']].append(txn['contractAddress'])
                     else: creationdict[txn['from']]=[txn['contractAddress']]
+        timeIt(start_time,"normInternal")
         return creationdict
 
-    def Check_Contract_Internal(self,address,creationdict,transactionlimit):
+    def contractInternal(self,address,creationdict,transactionlimit):
+        start_time=time.monotonic()
         payload="""
             https://api.etherscan.io/api?module=account&action=txlistinternal&address={address}&sort=asc&apikey={apikey}&offset={offset}&page=1
             """
@@ -95,15 +120,19 @@ class Gene:
                     if txn['contractAddress'] not in creationdict[txn['from']]:
                         creationdict[txn['from']].append(txn['contractAddress'])
                 else: creationdict[txn['from']]=[txn['contractAddress']]
+        timeIt(start_time,"contractInternal")
         return creationdict
 
-    def MultiCheck(self,address,creationdict,transactionlimit):
-        creationdict=Gene().Check_Contract_Internal(address,creationdict,transactionlimit)
-        creationdict=Gene().Check_Normal_By_Internal(address,creationdict,transactionlimit)
-        creationdict=Gene().Check_Opcode(address,creationdict,transactionlimit)
+    def multiCheck(self,address,creationdict,transactionlimit):
+        start_time=time.monotonic()
+        creationdict=Gene().contractInternal(address,creationdict,transactionlimit)
+        creationdict=Gene().normInternal(address,creationdict,transactionlimit)
+        creationdict=Gene().checkOpcode(address,creationdict,transactionlimit)
+        timeIt(start_time,"multiCheck")
         return creationdict
 
-    def GetHighest(self,creationdict):
+    def getHighest(self,creationdict):
+        start_time=time.monotonic()
         masterlist=[]
         for lists in creationdict.values():
             masterlist.extend(lists)
@@ -114,39 +143,47 @@ class Gene:
             if val in keylist:
                 keylist.remove(val)
         print(keylist)
+        timeIt(start_time,"getHighest")
         return keylist[0]
 
-    def Climb(self,address):
+    def climb(self,address):
+        start_time=time.monotonic()
         while True:
             lastaddress=address
-            address=Gene().GetParent(lastaddress)
+            address=Gene().getParent(lastaddress)
             if address==None or address==lastaddress:
+                timeIt(start_time,"climb")
                 return lastaddress
 
-    def flatdict(self,dicto):
+    def flatDict(self,dicto):
+        start_time=time.monotonic()
         flatlist=list(dicto.keys())
         values=list(dicto.values())
         for value in values:
             flatlist.extend(value)
+        timeIt(start_time,"flatDict")
         return list(dict.fromkeys(flatlist))
 
-    def TrickleDown(self,address,creationdict,transactionlimit):
-        creationdict=Gene().MultiCheck(address,creationdict,transactionlimit)
+    def trickleDown(self,address,creationdict,transactionlimit):
+        start_time=time.monotonic()
+        creationdict=Gene().multiCheck(address,creationdict,transactionlimit)
         flat=1
         newflat=2
         while flat!=newflat:
-            flat=Gene().flatdict(creationdict)
+            flat=Gene().flatDict(creationdict)
             for addr in flat:
                 if newflat!=2:
                     if addr in newflat:
                         continue
-                    else: creationdict=Gene().MultiCheck(addr,creationdict,transactionlimit)
-                else: creationdict=Gene().MultiCheck(addr,creationdict,transactionlimit)
-            newflat=Gene().flatdict(creationdict)
+                    else: creationdict=Gene().multiCheck(addr,creationdict,transactionlimit)
+                else: creationdict=Gene().multiCheck(addr,creationdict,transactionlimit)
+            newflat=Gene().flatDict(creationdict)
+        timeIt(start_time,"trickleDown")
         return creationdict
 
-    def UniqueContracts(self,creationdict):
-        flattenned=Gene().flatdict(creationdict)
+    def uniqueContracts(self,creationdict):
+        start_time = time.monotonic()
+        flattenned=Gene().flatDict(creationdict)
         returnable={}
         for addr in flattenned:
             payload="https://api.etherscan.io/api?module=contract&action=getsourcecode&address={address}&apikey={apikey}"
@@ -160,16 +197,20 @@ class Gene:
                         returnable[hashed]=addr
                 else:
                     returnable[addr]=addr
+        timeIt(start_time,"uniqueContracts")
         return list(returnable.values())
 
-    def MasterSleuth(self,address,savefile,transactionlimit,uniquesource):
-        address=Gene().Climb(address)
-        creationdict=Gene().TrickleDown(address,{},transactionlimit)
+    def masterSleuth(self,address,savefile,transactionlimit,uniquesource):
+        start_time=time.monotonic()
+        address=Gene().climb(address)
+        creationdict=Gene().trickleDown(address,{},transactionlimit)
         if uniquesource==True:
-            addresses=Gene().UniqueContracts(creationdict)
-        else: addresses=Gene().flatdict(creationdict)
+            addresses=Gene().uniqueContracts(creationdict)
+        else: addresses=Gene().flatDict(creationdict)
         df=pd.DataFrame(data={"Unique Addresses":addresses})
         df.to_csv(savefile)
+        timeIt(start_time,"masterSleuth")
+        print(timer)
 
 #Example Usage
-#Gene().MasterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',10,True)
+Gene().masterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',10,True)
