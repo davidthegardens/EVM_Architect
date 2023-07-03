@@ -9,6 +9,8 @@ import time
 from datetime import timedelta,datetime
 
 ###python 3.9.0 required for mythril
+
+#below are temporary add-ons for timing performance
 global timer, timeIt
 timer={}
 
@@ -18,7 +20,8 @@ def timeIt(start_time,name):
     if name in timer.keys():
         timer[name]=timer[name]+duration
     else: timer[name]=duration
-    
+
+###
 
 class Gene:
 
@@ -251,8 +254,7 @@ class Gene:
         df.to_csv(savefile)
         timeIt(start_time,"masterSleuth")
         
-
-
 #Example Usage
-Gene().masterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',100,True)
-print(timer)
+
+# Gene().masterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',100,True)
+# print(timer)
