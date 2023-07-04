@@ -184,8 +184,12 @@ class Gene:
         values=list(dicto.values())
         for value in values:
             flatlist.extend(value)
+        flatlist=list(dict.fromkeys(flatlist))
+        flatlist2=flatlist
+        for x in range(flatlist.count("")):
+            flatlist2.remove("")
         timeIt(start_time,"flatDict")
-        return list(dict.fromkeys(flatlist))
+        return flatlist2
 
     def trickleDown(self,address,creationdict,transactionlimit):
         start_time=time.monotonic()
@@ -220,7 +224,8 @@ class Gene:
                 "accept": "application/json",
                 "content-type": "application/json"
             }
-            source = requests.post(url, json=payload, headers=headers).json()['result']
+            source = requests.post(url, json=payload, headers=headers).json()
+            source=source['result']
             # source=response['result'].join("")
             # source=mythril.disassembler.asm.disassemble(source)
             if source!="":
@@ -244,5 +249,5 @@ class Gene:
         timeIt(start_time,"masterSleuth")
         
 #Example Usage
-Gene().masterSleuth('0xce680723d7fd67ab193dfec828b7fbc441f29b01','aave.csv',100,True)
+Gene().masterSleuth('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f','univ2.csv',100,True)
 print(timer)
