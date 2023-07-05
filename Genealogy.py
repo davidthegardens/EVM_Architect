@@ -260,17 +260,33 @@ class Gene:
         sourcehashes=Gene().uniqueContracts(creationdict,uniquesource)
         address_string=Gene().flatDict(creationdict)
         contracts=[]
-        abi_string=[]
+        eoas=[]
+        children_eoa=[]
+        parent_eoa=[]
         parent=[]
         children=[]
         for addr in address_string:
             addr=addr.lower()
             if sourcehashes[addr]=="EOA":
-                pass
+                print(addr)
+                eoas.append(addr)
+                if addr in creationdict.keys():
+                    children_eoa.append(creationdict[addr])
+                else:
+                    children_eoa.append("[]")
+                for key in list(creationdict.keys()):
+                    valuelist=creationdict[key]
+                    #print(valuelist)
+                    if addr in valuelist:
+                        parent_eoa.append(key)
+                        toggle=False
+                        break
+                    else:
+                        toggle=True
+                if toggle:
+                    parent_eoa.append(None)
             else:
                 contracts.append(addr)
-
-                
                 if addr in creationdict.keys():
                     children.append(creationdict[addr])
                 else:
@@ -298,10 +314,15 @@ class Gene:
 
         df["~id"]="eth:"+df["address:string"]
         df=df[["~id","~label","address:string","abi:string","sourceHash:string","parent:string","children:list"]]
-        df.to_csv(savefile)
+        df.to_csv(savefile+"_contracts.csv")
+        df_eoa=pd.DataFrame(data={"address:string":eoas,"parent:string":parent_eoa,"children:list":children_eoa})
+        df_eoa['~id']="eth:"+df_eoa["address:string"].astype("str")
+        df_eoa['~label']="EOA"
+        df_eoa=df_eoa[["~id","~label","address:string","parent:string","children:list"]]
+        df_eoa.to_csv(savefile+"_EOAs.csv")
         #abi_string.append(Gene().getABI(addr))
         timeIt(start_time,"masterSleuth")
         
 #Example Usage
-Gene().masterSleuth('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f','univ2.csv',100,False)
+Gene().masterSleuth('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f','univ2',100,False)
 print(timer)
