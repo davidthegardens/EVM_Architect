@@ -165,7 +165,7 @@ class Gene:
         for val in masterlist:
             if val in keylist:
                 keylist.remove(val)
-        print(keylist)
+        #print(keylist)
         timeIt(start_time,"getHighest")
         return keylist[0]
 
@@ -208,7 +208,19 @@ class Gene:
         timeIt(start_time,"trickleDown")
         return creationdict
 
-    def uniqueContracts(self,creationdict):
+    def getABI(self,address):
+        start_time = time.monotonic()
+        payload=payload="""
+            https://api.etherscan.io/api?module=contract&action=getabi&address={address}&apikey={apikey}
+            """
+        content=requests.get(payload.format(apikey=km().Easy_Key(KeyName="etherscan_api_key"),address=address))
+        content=content.json()['result']
+        if content=="Contract source code not verified":
+            content="UNVERIFIED"
+        timeIt(start_time,"getABI")
+        return content
+
+    def uniqueContracts(self,creationdict,uniquesource):
         start_time = time.monotonic()
         flattenned=Gene().flatDict(creationdict)
         returnable={}
@@ -230,24 +242,66 @@ class Gene:
             # source=mythril.disassembler.asm.disassemble(source)
             if source!="":
                 hashed=Gene().hashOpcode(source)
-                if hashed not in returnable.keys():
-                    returnable[hashed]=addr
+                if uniquesource==True:
+                    if hashed not in returnable.keys():
+                        returnable[addr]=hashed
+                else:
+                    returnable[addr]=hashed
             else:
-                returnable[addr]=addr
+                returnable[addr]="EOA"
         timeIt(start_time,"uniqueContracts")
-        return list(returnable.values())
+        #print(returnable)
+        return returnable
 
     def masterSleuth(self,address,savefile,transactionlimit,uniquesource):
         start_time=time.monotonic()
         address=Gene().climb(address)
         creationdict=Gene().trickleDown(address,{},transactionlimit)
-        if uniquesource==True:
-            addresses=Gene().uniqueContracts(creationdict)
-        else: addresses=Gene().flatDict(creationdict)
-        df=pd.DataFrame(data={"Unique Addresses":addresses})
+        sourcehashes=Gene().uniqueContracts(creationdict,uniquesource)
+        address_string=Gene().flatDict(creationdict)
+        contracts=[]
+        abi_string=[]
+        parent=[]
+        children=[]
+        for addr in address_string:
+            addr=addr.lower()
+            if sourcehashes[addr]=="EOA":
+                pass
+            else:
+                contracts.append(addr)
+
+                
+                if addr in creationdict.keys():
+                    children.append(creationdict[addr])
+                else:
+                    children.append("[]")
+                for key in list(creationdict.keys()):
+                    valuelist=creationdict[key]
+                    #print(valuelist)
+                    if addr in valuelist:
+                        parent.append(key)
+                        toggle=False
+                        break
+                    else:
+                        toggle=True
+                if toggle:
+                    parent.append(None)
+        #print(creationdict)
+        df=pd.DataFrame(data={"address:string":contracts,"parent:string":parent,"children:list":children})
+        df['~label']="CONTRACT"
+        df['sourceHash:string']=df['address:string'].map(sourcehashes)
+        sourcehashes=list(set(sourcehashes.values()))
+        if "EOA" in sourcehashes:
+            sourcehashes.remove("EOA")
+        for hash in sourcehashes:
+            df.loc[df["sourceHash:string"] == hash, "abi:string"] = Gene().getABI(df[df['sourceHash:string']==hash]['address:string'].to_list()[0])
+
+        df["~id"]="eth:"+df["address:string"]
+        df=df[["~id","~label","address:string","abi:string","sourceHash:string","parent:string","children:list"]]
         df.to_csv(savefile)
+        #abi_string.append(Gene().getABI(addr))
         timeIt(start_time,"masterSleuth")
         
 #Example Usage
-Gene().masterSleuth('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f','univ2.csv',100,True)
+Gene().masterSleuth('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f','univ2.csv',100,False)
 print(timer)
