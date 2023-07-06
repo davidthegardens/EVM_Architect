@@ -312,8 +312,9 @@ class Gene:
             sourcehashes.remove("EOA")
         for hash in sourcehashes:
             df.loc[df["sourceHash:string"] == hash, "abi:string"] = Gene().getABI(df[df['sourceHash:string']==hash]['address:string'].to_list()[0])
-
-        df["~id"]="eth:"+df["address:string"]
+        if len(df['sourceHash:string'])<1:
+            df["abi:string"]=None
+        df["~id"]="eth:"+df["address:string"].astype("str")
         df=df[["~id","~label","address:string","abi:string","sourceHash:string","parent:string","children:list"]]
         df.to_csv(savefile+"_contracts.csv")
         df_eoa=pd.DataFrame(data={"address:string":eoas,"parent:string":parent_eoa,"children:list":children_eoa})
