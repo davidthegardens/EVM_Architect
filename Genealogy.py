@@ -1,7 +1,5 @@
 from keymanager import KeyManager as km
 import requests
-import json
-import dis
 import mythril
 import hashlib
 import pandas as pd
@@ -9,6 +7,8 @@ import time
 from datetime import timedelta,datetime
 
 ###python 3.9.0 required for mythril
+
+#below is a temporary function for measuring runtime while optimizing
 global timer, timeIt
 timer={}
 
@@ -18,7 +18,8 @@ def timeIt(start_time,name):
     if name in timer.keys():
         timer[name]=timer[name]+duration
     else: timer[name]=duration
-    
+#####
+
 
 class Gene:
 
@@ -324,5 +325,5 @@ class Gene:
         timeIt(start_time,"masterSleuth")
         
 #Example Usage
-Gene().masterSleuth('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f','univ2',100,False)
-print(timer)
+# Gene().masterSleuth('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f','univ2',100,False)
+# print(timer)
