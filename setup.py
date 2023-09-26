@@ -11,7 +11,7 @@ setup(
     author_email='david.thegardens@gmail.com',
     description='Returns the architecture of a DeFi application with any given address',
     keywords='DeFi, Ethereum, Data, Smart Contracts, EVM',
-    url='https://github.com/davidthegardens/Gene',
+    url='https://github.com/davidthegardens/EVM_Architect',
     classifiers=[
         'License :: OSI Approved :: Python Software Foundation License'
     ]
