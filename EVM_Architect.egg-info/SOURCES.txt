@@ -1,0 +1,7 @@
+README.md
+setup.py
+EVM_Architect.egg-info/PKG-INFO
+EVM_Architect.egg-info/SOURCES.txt
+EVM_Architect.egg-info/dependency_links.txt
+EVM_Architect.egg-info/requires.txt
+EVM_Architect.egg-info/top_level.txt

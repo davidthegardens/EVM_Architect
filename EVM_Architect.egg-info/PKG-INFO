@@ -1,0 +1,12 @@
+Metadata-Version: 1.1
+Name: EVM-Architect
+Version: 0.2
+Summary: Returns the architecture of a DeFi application with any given address
+Home-page: https://github.com/davidthegardens/Gene
+Author: David Desjardins
+Author-email: david.thegardens@gmail.com
+License: UNKNOWN
+Description: UNKNOWN
+Keywords: DeFi,Ethereum,Data,Smart Contracts,EVM
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: Python Software Foundation License

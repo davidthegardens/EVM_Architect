@@ -35,7 +35,7 @@ class KeyManager:
         if IsRegistered==False:
             if ExpectedExists==False:
                 os.makedirs(os.path.abspath(ExpectedDir))
-            key=input("Please enter the API key: ")
+            key=input(f"Key manager: system is requesting '{KeyName}', please enter it here: ")
             with open(ExpectedFile,"wb") as f:
                 pickle.dump(key,f)
             return key
