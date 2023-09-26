@@ -12,7 +12,7 @@ getArch(
 
 If flatten==True, then you will get a list of addresses (EOAs and contracts).
 
-'''Python
+'''
 #Example:
 ['0xd1c24f50d05946b3fabefbae3cd0a7e9938c63f2', '0xc0a47dfe034b400b47bdad5fecda2621de6c4d95', '0xa087b7351c24082ac7ef7ca79b4f4c5d2e82be84', '0x2157a7894439191e520825fe9399ab8655e0f708', '0x2c4bd064b998838076fa341a83d007fc2fa50957', '0xddee242662323a3cff3f9aa139ffa496ac3c73b0',...]
 '''
