@@ -3,7 +3,7 @@ There's a handful of optimizations still to be had. Speed has been increased by 
 
 Most of the time you'll probably just want to use getArch(), these are the arguments:
 
-'''
+'''Python
 getArch(
     address (string), 
     transaction limit (int), 
@@ -12,14 +12,14 @@ getArch(
 
 If flatten==True, then you will get a list of addresses (EOAs and contracts).
 
-'''
+'''Python
 #Example:
 ['0xd1c24f50d05946b3fabefbae3cd0a7e9938c63f2', '0xc0a47dfe034b400b47bdad5fecda2621de6c4d95', '0xa087b7351c24082ac7ef7ca79b4f4c5d2e82be84', '0x2157a7894439191e520825fe9399ab8655e0f708', '0x2c4bd064b998838076fa341a83d007fc2fa50957', '0xddee242662323a3cff3f9aa139ffa496ac3c73b0',...]
 '''
 
 If flatten==False, then you will get a dictionnary in the format below. Keep in mind that created1 may also be a creator somewhere else in the dictionnary.
 
-'''
+'''Python
 {creator:[created1,created2,created3,...]}
 #Example:
 {'0xd1c24f50d05946b3fabefbae3cd0a7e9938c63f2': ['0xa087b7351c24082ac7ef7ca79b4f4c5d2e82be84', '0x2157a7894439191e520825fe9399ab8655e0f708', '0xc0a47dfe034b400b47bdad5fecda2621de6c4d95'],...}
@@ -28,7 +28,7 @@ If flatten==False, then you will get a dictionnary in the format below. Keep in 
 Here are some code examples:
 
 
-'''
+'''Python
 from Architect import Arch
 
 arch=Arch()
