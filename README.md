@@ -4,7 +4,7 @@ There's a handful of optimizations still to be had. Speed has been increased by 
 To use this, make sure you're using python 3.9.0. You can install using pip.
 
 ```Python
-pip install EVM_Architect
+pip install evm-architect
 ```
 
 Most of the time you'll probably just want to use getArch(), these are the arguments:
@@ -35,9 +35,9 @@ Here are some code examples:
 
 
 ```Python
-from Architect import Arch
+from evm_architect import architect
 
-arch=Arch()
+arch=architect.Arch()
 
 architecture=arch.getArch("0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95",50,False)
 

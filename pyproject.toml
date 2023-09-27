@@ -1,0 +1,27 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "evm_architect"
+version = "1.0.0"
+description = "Get the entire architecture of a smart contract system from any address in the architecture"
+authors = ["David <davidthegardens@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "==3.9"
+mythril = "0.23.25"
+web3 = "5.31.1"
+requests = "2.31.0"
+
+[tool.poetry.dev-dependencies]
+
+[[tool.poetry.source]]
+name = "legacy"
+url = "https://pypi.org/simple"
+secondary = true
+
+[tool.poetry.urls]
+"Homepage" = "https://github.com/davidthegardens/EVM_Architect"
+"Bug Tracker" = "https://github.com/davidthegardens/EVM_Architect/issues"

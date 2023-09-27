@@ -1,7 +1,6 @@
 #Gitignore added by easykey
 API_Keys/
-venv3.9/bin/
-venv3.9/lib/
+venv/
 __pycache__/
 test.py
 test2.py

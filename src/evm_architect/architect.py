@@ -1,4 +1,4 @@
-from keymanager import KeyManager as km
+from evm_architect.keymanager import KeyManager as km
 import requests
 import mythril
 import hashlib
